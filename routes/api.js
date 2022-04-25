@@ -4,8 +4,6 @@ const { ObjectId } = require('mongodb');
 const Project = require('../db').Project;
 const Issue = require('../db').Issue;
 
-// TODO validate props names
-
 const getIssues = async (req, res) => {
   const { query } = req;
 
@@ -14,29 +12,26 @@ const getIssues = async (req, res) => {
   else if (query.open === 'false') query.open = false;
 
   const matches = [];
-  for (key in Object.keys(query)) {
+  for (const key in query) {
     if (query[key] !== '') {
-      matches.push({ [key]: `issues.${query[key]}` });
+      matches.push({ $match: { [`issues.${key}`]: query[key] } });
     }
   }
 
   try {
     const result = await Project.aggregate([
       { $match: { name: req.params.project } },
+      { $unwind: '$issues' },
       ...matches,
-    ])
-      .unwind('issues')
-      .exec();
+    ]).exec();
 
     if (result && result.length > 0) {
       return res.json(result.map((i) => i.issues));
     } else {
-      return res.status(404).json({ error: 'no issues found', _id: query._id });
+      return res.json({ error: 'no issues found', _id: query._id });
     }
   } catch (err) {
-    return res
-      .status(404)
-      .json({ error: 'no issues found', _id: query._id, err });
+    return res.json({ error: 'no issues found', _id: query._id, err });
   }
 };
 
@@ -45,7 +40,7 @@ const postIssue = async (req, res) => {
     req.body;
 
   if (!issue_title || !issue_text || !created_by) {
-    return res.status(400).json({ error: 'required field(s) missing' });
+    return res.json({ error: 'required field(s) missing' });
   }
 
   const issue = new Issue({
@@ -71,16 +66,20 @@ const postIssue = async (req, res) => {
       return res.json({ error: 'could not save' });
     }
   } catch (err) {
-    return res.status(400).json({ error: 'could not save', err });
+    return res.json({ error: 'could not save', err });
   }
 };
 
 const putIssue = async (req, res) => {
   const updateData = req.body;
   if (updateData._id) {
-    updateData._id = new ObjectId(updateData._id);
+    try {
+      updateData._id = new ObjectId(updateData._id);
+    } catch (err) {
+      return res.json({ error: 'could not update' });
+    }
   } else {
-    return res.status(400).json({ error: 'missing _id' });
+    return res.json({ error: 'missing _id' });
   }
 
   for (const p in updateData) {
@@ -89,10 +88,9 @@ const putIssue = async (req, res) => {
     }
   }
 
-  if (Object.keys(updateData).length === 0) {
-    return res
-      .status(400)
-      .json({ error: 'no update field(s) sent', _id: ıupdateData._id });
+  // if updateData has only id, return error
+  if (Object.keys(updateData).length === 1) {
+    return res.json({ error: 'no update field(s) sent' });
   }
 
   try {
@@ -133,18 +131,20 @@ const putIssue = async (req, res) => {
       return res.json({ error: 'could not update', _id: updateData._id });
     }
   } catch (err) {
-    return res
-      .status(400)
-      .json({ error: 'could not update', _id: updateData._id, err });
+    return res.json({ error: 'could not update', _id: updateData._id, err });
   }
 };
 
 const deleteIssue = async (req, res) => {
   let { _id } = req.body;
   if (_id) {
-    _id = new ObjectId(_id);
+    try {
+      _id = new ObjectId(_id);
+    } catch (err) {
+      return res.json({ error: 'could not delete' });
+    }
   } else {
-    return res.status(400).json({ error: 'missing _id' });
+    return res.json({ error: 'missing _id' });
   }
 
   try {
@@ -159,7 +159,7 @@ const deleteIssue = async (req, res) => {
       return res.json({ error: 'could not delete', _id });
     }
   } catch (err) {
-    return res.status(400).json({ error: 'could not delete', _id, err });
+    return res.json({ error: 'could not delete', _id, err });
   }
 };
 

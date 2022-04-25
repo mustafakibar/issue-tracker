@@ -59,4 +59,4 @@ const listener = app.listen(process.env.PORT || 3000, async () => {
   }
 });
 
-module.exports = app; //for testing
+module.exports = { app, dbclient }; //for testing

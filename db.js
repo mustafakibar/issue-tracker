@@ -13,6 +13,8 @@ const connect = async () => {
   } catch (err) {
     console.log('Failed to connect to DB', err);
   }
+
+  return db;
 };
 
 const IssueSchema = new Schema({
