@@ -7,7 +7,12 @@ const Issue = require('../db').Issue;
 const getIssues = async (req, res) => {
   const { query } = req;
 
-  if (query._id) query._id = new ObjectId(query._id);
+  let _id;
+  if (query._id) {
+    query._id = new ObjectId(query._id);
+    _id = query._id;
+  }
+
   if (query.open === '' || query.open === 'true') query.open = true;
   else if (query.open === 'false') query.open = false;
 
@@ -28,10 +33,10 @@ const getIssues = async (req, res) => {
     if (result && result.length > 0) {
       return res.json(result.map((i) => i.issues));
     } else {
-      return res.json({ error: 'no issues found', _id: query._id });
+      return res.json({ error: 'no issues found', _id });
     }
   } catch (err) {
-    return res.json({ error: 'no issues found', _id: query._id, err });
+    return res.json({ error: 'no issues found', _id, err });
   }
 };
 
@@ -72,12 +77,15 @@ const postIssue = async (req, res) => {
 
 const putIssue = async (req, res) => {
   const updateData = req.body;
+  let _id;
   if (updateData._id) {
     try {
       updateData._id = new ObjectId(updateData._id);
     } catch (err) {
-      return res.json({ error: 'could not update' });
+      return res.json({ error: 'could not update', _id });
     }
+
+    _id = updateData._id;
   } else {
     return res.json({ error: 'missing _id' });
   }
@@ -90,7 +98,7 @@ const putIssue = async (req, res) => {
 
   // if updateData has only id, return error
   if (Object.keys(updateData).length === 1) {
-    return res.json({ error: 'no update field(s) sent' });
+    return res.json({ error: 'no update field(s) sent', _id });
   }
 
   try {
@@ -120,18 +128,18 @@ const putIssue = async (req, res) => {
     }
 
     const result = await Project.findOneAndUpdate(
-      { name: req.params.project, 'issues._id': updateData._id },
+      { name: req.params.project, 'issues._id': _id },
       { $set },
       { returnDocument: 'after' }
     ).exec();
 
     if (result && result._id) {
-      return res.json({ result: 'successfully updated', _id: updateData._id });
+      return res.json({ result: 'successfully updated', _id });
     } else {
-      return res.json({ error: 'could not update', _id: updateData._id });
+      return res.json({ error: 'could not update', _id });
     }
   } catch (err) {
-    return res.json({ error: 'could not update', _id: updateData._id, err });
+    return res.json({ error: 'could not update', _id, err });
   }
 };
 
