@@ -32,7 +32,7 @@ yarn install
 
 ## Environment Variables
 
-Derived from `.env`:
+Create a `.env` file in the project root with:
 
 - `PORT` — server port (defaults to `3000`)
 - `NODE_ENV` — `development` | `test` | `production`
